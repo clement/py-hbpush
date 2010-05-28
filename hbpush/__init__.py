@@ -29,7 +29,7 @@ class Subscriber(PubSubHandler):
     @asynchronous
     def get(self, channel_id):
         channel = channel_cls.get_by_id(channel_id)
-        etag = int(self.request.headers.get('If-None-Match', 0))
+        etag = int(self.request.headers.get('If-None-Match', -1))
         last_modified = int('If-Modified-Since' in self.request.headers and mktime_tz(parsedate_tz(self.request.headers['If-Modified-Since'])) or 0)
         # :TODO: if failure, send a bad request
         channel.get(last_modified, etag, self._finalize_get)
