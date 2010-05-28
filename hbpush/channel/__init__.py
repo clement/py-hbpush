@@ -24,7 +24,10 @@ class Channel(object):
     def get_last_message(self):
         raise NotImplementedError("")
         
-    def subscribe(self, callback):
+    def subscribe(self, id_subscriber, callback):
+        raise NotImplementedError("")
+
+    def unsubscribe(self, id_subscriber):
         raise NotImplementedError("")
 
     def make_message(self, content_type, body):
