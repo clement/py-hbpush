@@ -2,6 +2,9 @@ import logging
 from hbpush.channel import Channel
 from hbpush.message import Message
 
+from brukva.adisp import async, process
+
+
 class MemoryChannel(Channel):
     channels = {}
 
@@ -28,31 +31,37 @@ class MemoryChannel(Channel):
     def get_last_message(self):
         return self.last_message
 
+    @async
+    @process
     def post(self, content_type, body, callback):
         message = self.make_message(content_type, body)
-        def _notify(message):
-            if message is not None: # No error when storing
-                # We work on a copy to deal with reentering subscribers
-                subs = self.subscribers[:]
-                self.subscribers = []
-                for cb in subs:
-                    try:
-                        cb(message)
-                    except:
-                        logging.error("Error sending message to subscriber", exc_info=True)
-                self.last_message = Message(message.last_modified, message.etag)
-            # Give back control to the handler with the result of the store
-            callback(message)
-        self.store.post(message, _notify)
+        message = yield self.store.post(message)
+
+        if message is not None: # No error when storing
+            # We work on a copy to deal with reentering subscribers
+            subs = self.subscribers[:]
+            self.subscribers = []
+            for cb in subs:
+                try:
+                    cb(message)
+                except:
+                    logging.error("Error sending message to subscriber", exc_info=True)
+            self.last_message = Message(message.last_modified, message.etag)
+
+        # Give back control to the handler with the result of the store
+        callback(message)
 
     def subscribe(self, callback):
         self.subscribers.append(callback)
 
+    @async
+    @process
     def get(self, last_modified, etag, callback):
         request_msg = Message(last_modified, etag)
 
         if request_msg < self.last_message:
-            self.store.get(last_modified, etag, callback)
+            message = yield self.store.get(last_modified, etag)
+            callback(message)
         else:
             def _cb(message):
                 if request_msg >= message:

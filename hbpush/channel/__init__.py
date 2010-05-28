@@ -1,3 +1,4 @@
+from brukva.adisp import async
 from hbpush.message import Message
 import time
 
@@ -12,9 +13,11 @@ class Channel(object):
     def create(cls, id, overwrite=False):
         raise NotImplementedError("")
 
+    @async
     def post(self, message, callback):
         raise NotImplementedError("")
 
+    @async
     def get(self, last_modified, etag, callback):
         raise NotImplementedError("")
 

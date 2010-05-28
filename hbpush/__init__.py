@@ -1,6 +1,8 @@
 from tornado.web import RequestHandler, Application, asynchronous
 from tornado.httpserver import HTTPServer
 from tornado.ioloop import IOLoop
+from brukva.adisp import process
+
 from hbpush.channel import Channel
 
 from email.utils import formatdate, parsedate_tz, mktime_tz
@@ -13,28 +15,27 @@ class PubSubHandler(RequestHandler):
 
 class Publisher(PubSubHandler):
     @asynchronous
+    @process
     def post(self, channel_id):
         try:
             channel = channel_cls.get_by_id(channel_id)
         except Channel.DoesNotExist:
             channel = channel_cls.create(channel_id)
 
-        channel.post(self.request.headers['Content-Type'], self.request.body, self.async_callback(self._finalize_post))
-
-    def _finalize_post(self, message):
+        message = yield channel.post(self.request.headers['Content-Type'], self.request.body)
         self.write('Written: (%d) (%d) %s' % (message.last_modified, message.etag, message.body))
         self.finish()
 
 class Subscriber(PubSubHandler):
     @asynchronous
+    @process
     def get(self, channel_id):
         channel = channel_cls.get_by_id(channel_id)
         etag = int(self.request.headers.get('If-None-Match', -1))
         last_modified = int('If-Modified-Since' in self.request.headers and mktime_tz(parsedate_tz(self.request.headers['If-Modified-Since'])) or 0)
         # :TODO: if failure, send a bad request
-        channel.get(last_modified, etag, self._finalize_get)
+        message = yield channel.get(last_modified, etag)
 
-    def _finalize_get(self, message):
         self.set_header('Etag', message.etag)
         self.set_header('Last-Modified', formatdate(message.last_modified, localtime=False, usegmt=True))
         self.add_vary_header()
