@@ -1,5 +1,6 @@
 from tornado.web import RequestHandler, HTTPError
 from hbpush.channel import Channel
+from hbpush.message import Message
 
 
 class PubSubHandler(RequestHandler):
@@ -8,6 +9,7 @@ class PubSubHandler(RequestHandler):
         Channel.Duplicate: 409,
         Channel.Gone: 410,
         Channel.NotModified: 304,
+        Message.DoesNotExist: 404,
     }
 
     def __init__(self, *args, **kwargs):
