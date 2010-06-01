@@ -30,7 +30,7 @@ class MemoryChannelRegistry(ChannelRegistry):
     def delete(self, id, callback, errback):
         try:
             channel = self.channels.pop(id)
-            callback(channel.delete())
+            channel.delete(callback, errback)
         except KeyError:
             errback(Channel.DoesNotExist())
 
@@ -90,7 +90,7 @@ class MemoryChannel(Channel):
         else:
             errback(Channel.NotModified())
 
-    def delete(self):
+    def delete(self, callback, errback):
         for id, (cb, eb) in self.subscribers.items():
             try:
                 eb(Channel.Gone())
@@ -98,3 +98,6 @@ class MemoryChannel(Channel):
                 logging.error("Error disconnecting subscribers after channel deletion", exc_info=True)
         # Just for the record
         self.subscribers = {}
+
+        # Delete all messages from the store
+        self.store.flush(self.id, callback, errback)

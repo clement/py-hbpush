@@ -21,3 +21,7 @@ class MemoryStore(Store):
     def post(self, channel_id, message, callback, errback):
         self.messages.setdefault(channel_id, []).append(message)
         callback(message)
+
+    def flush(self, channel_id, callback, errback):
+        del self.messages[channel_id]
+        callback(True)

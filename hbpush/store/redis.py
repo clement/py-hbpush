@@ -36,6 +36,10 @@ class RedisStore(Store):
         (score, data) = self.make_message(message)
         self.client.zadd(channel_id, score, data, partial(self._on_result, lambda x: callback(message), errback))
 
+    def flush(self, channel_id, callback, errback):
+        self.client.delete(channel_id, partial(self._on_result, lambda x: callback(True), errback))
+
+
     def make_score(self, message):
         return '{{0:d}}.{{1:0{0}d}}'.format(self.PRECISION).format(message.last_modified, message.etag > 0 and message.etag or 0)
 
