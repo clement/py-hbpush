@@ -59,3 +59,6 @@ class Channel(object):
 
     class Gone(Exception):
         pass
+
+    class NotModified(Exception):
+        pass

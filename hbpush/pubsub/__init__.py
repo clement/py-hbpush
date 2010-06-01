@@ -7,6 +7,7 @@ class PubSubHandler(RequestHandler):
         Channel.DoesNotExist: 404,
         Channel.Duplicate: 409,
         Channel.Gone: 410,
+        Channel.NotModified: 304,
     }
 
     def __init__(self, *args, **kwargs):

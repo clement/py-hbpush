@@ -65,6 +65,16 @@ class MemoryChannel(Channel):
         message = self.make_message(content_type, body)
         self.store.post(message, callback=_process_message, errback=errback)
 
+    def wait_for(self, last_modified, etag, id_subscriber, callback, errback):
+        request_msg = Message(last_modified, etag)
+
+        def _cb(message):
+            if request_msg >= message:
+                self.subscribe(id_subscriber, _cb, errback)
+            else:
+                callback(message)
+
+        self.subscribe(id_subscriber, _cb, errback)
 
     def subscribe(self, id_subscriber, callback, errback):
         self.subscribers[id_subscriber] = (callback, errback)
@@ -72,20 +82,13 @@ class MemoryChannel(Channel):
     def unsubscribe(self, id_subscriber):
         self.subscribers.pop(id_subscriber, None)
 
-
-    def get(self, id_subscriber, last_modified, etag, callback, errback):
+    def get(self, last_modified, etag, callback, errback):
         request_msg = Message(last_modified, etag)
 
         if request_msg < self.last_message:
             self.store.get(last_modified, etag, callback=callback, errback=errback)
         else:
-            def _cb(message):
-                if request_msg >= message:
-                    # We still have to wait
-                    self.subscribe(id_subscriber, _cb, errback)
-                else:
-                    callback(message)
-            self.subscribe(id_subscriber, _cb, errback)
+            errback(Channel.NotModified())
 
     def delete(self):
         for id, (cb, eb) in self.subscribers.items():
