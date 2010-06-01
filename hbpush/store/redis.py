@@ -13,24 +13,24 @@ class RedisStore(Store):
         self.client = Client()
         self.client.connect()
 
+    def _get_message(self, callback, errback, data):
+        if len(data) == 0:
+            errback(Message.DoesNotExist())
+        else:
+            try:
+                callback(self.parse_message(data[0]))
+            except:
+                errback(Message.Invalid())
+        
+
     def get(self, channel_id, last_modified, etag, callback, errback):
         score = self.make_score(Message(last_modified, etag))
         # If an etag is set, we have to make the range request exclusive
         if etag >= 0:
             score = '('+score
 
-        def _cb(data):
-            if len(data) == 0:
-                errback(Message.DoesNotExist)
-            else:
-                try:
-                    headers, body = data[0].split('\r\n'*2, 1)
-                    headers = dict(map(lambda h: h.split(': ', 1), headers.split('\r\n')))
-                    callback(Message(mktime_tz(parsedate_tz(headers['Last-Modified'])), int(headers['Etag']), headers['Content-Type'], body))
-                except:
-                    errback(Message.Invalid())
-
-        self.client.zrangebyscore(channel_id, score, '+inf', 0, 1, callbacks=partial(self._on_result, _cb, errback))
+        self.client.zrangebyscore(channel_id, score, '+inf', 0, 1,
+            callbacks=partial(self._on_result, partial(self._get_message, callback, errback), errback))
 
     def post(self, channel_id, message, callback, errback):
         (score, data) = self.make_message(message)
@@ -51,10 +51,14 @@ class RedisStore(Store):
             message.body
         )
 
+    def parse_message(self, payload):
+        headers, body = payload.split('\r\n'*2, 1)
+        headers = dict(map(lambda h: h.split(': ', 1), headers.split('\r\n')))
+        return Message(mktime_tz(parsedate_tz(headers['Last-Modified'])), int(headers['Etag']), headers['Content-Type'], body)
+
     def _on_result(self, callback, errback, result):
         (error, data) = result
         if error:
             errback(error)
         else:
             callback(data)
-
