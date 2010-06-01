@@ -13,3 +13,6 @@ class Message(object):
 
     class DoesNotExist(Exception):
         pass
+
+    class Invalid(Exception):
+        pass
