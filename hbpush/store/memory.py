@@ -18,6 +18,14 @@ class MemoryStore(Store):
         except IndexError:
             errback(Message.DoesNotExist)
 
+    def get_last(self, channel_id, callback, errback):
+        channel_messages = self.messages.setdefault(channel_id, [])
+
+        if len(channel_messages):
+            callback(channel_messages[-1])
+        else:
+            errback(Message.DoesNotExist)
+
     def post(self, channel_id, message, callback, errback):
         self.messages.setdefault(channel_id, []).append(message)
         callback(message)

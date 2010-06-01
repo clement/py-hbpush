@@ -32,6 +32,9 @@ class RedisStore(Store):
         self.client.zrangebyscore(channel_id, score, '+inf', 0, 1,
             callbacks=partial(self._on_result, partial(self._get_message, callback, errback), errback))
 
+    def get_last(self, channel_id, callback, errback):
+        self.client.zrevrange(channel_id, 0, 0, False, partial(self._on_result, partial(self._get_message, callback, errback), errback))
+        
     def post(self, channel_id, message, callback, errback):
         (score, data) = self.make_message(message)
         self.client.zadd(channel_id, score, data, partial(self._on_result, lambda x: callback(message), errback))
