@@ -21,8 +21,9 @@ class ChannelRegistry(object):
         
 
 class Channel(object):
-    def __init__(self, store):
+    def __init__(self, id, store):
         self.store = store
+        self.id = id
 
     def post(self, message, callback):
         raise NotImplementedError("")

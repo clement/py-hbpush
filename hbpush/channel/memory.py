@@ -18,13 +18,13 @@ class MemoryChannelRegistry(ChannelRegistry):
         if not overwrite and id in self.channels:
             errback(Channel.Duplicate())
         else:
-            channel = self.channel_cls(self.store)
+            channel = self.channel_cls(id, self.store)
             self.channels[id] = channel
             callback(channel)
 
     def get_or_create(self, id, callback, errback):
         if id not in self.channels:
-            self.channels[id] = self.channel_cls(self.store)
+            self.channels[id] = self.channel_cls(id, self.store)
         callback(self.channels[id])
 
     def delete(self, id, callback, errback):
@@ -63,7 +63,7 @@ class MemoryChannel(Channel):
             callback(message)
             
         message = self.make_message(content_type, body)
-        self.store.post(message, callback=_process_message, errback=errback)
+        self.store.post(self.id, message, callback=_process_message, errback=errback)
 
     def wait_for(self, last_modified, etag, id_subscriber, callback, errback):
         request_msg = Message(last_modified, etag)
@@ -86,7 +86,7 @@ class MemoryChannel(Channel):
         request_msg = Message(last_modified, etag)
 
         if request_msg < self.last_message:
-            self.store.get(last_modified, etag, callback=callback, errback=errback)
+            self.store.get(self.id, last_modified, etag, callback=callback, errback=errback)
         else:
             errback(Channel.NotModified())
 
