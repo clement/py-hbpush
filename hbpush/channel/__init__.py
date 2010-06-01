@@ -1,23 +1,32 @@
-from brukva.adisp import async
 from hbpush.message import Message
 import time
 
-class Channel(object):
-    store = None
 
-    @classmethod
-    def get_by_id(cls, id):
+class ChannelRegistry(object):
+    def __init__(self, channel_cls, store):
+        self.channel_cls = channel_cls
+        self.store = store
+
+    def get(self, id, callback, errback):
         raise NotImplementedError("")
         
-    @classmethod
-    def create(cls, id, overwrite=False):
+    def create(self, id, callback, errback, overwrite=False):
         raise NotImplementedError("")
 
-    @async
+    def get_or_create(self, id, callback, errback):
+        raise NotImplementedError("")
+        
+    def delete(self, id, callback, errback):
+        raise NotImplementedError("")
+        
+
+class Channel(object):
+    def __init__(self, store):
+        self.store = store
+
     def post(self, message, callback):
         raise NotImplementedError("")
 
-    @async
     def get(self, last_modified, etag, callback):
         raise NotImplementedError("")
 
@@ -48,4 +57,5 @@ class Channel(object):
     class Duplicate(Exception):
         pass
 
-
+    class Gone(Exception):
+        pass

@@ -7,3 +7,9 @@ class Message(object):
 
     def __cmp__(self, other):
         return cmp((self.last_modified, self.etag), (other.last_modified, other.etag))
+
+    def __str__(self):
+        return '%s:%s:%s:%s' % (self.last_modified, self.etag, self.content_type, self.body)
+
+    class DoesNotExist(Exception):
+        pass
