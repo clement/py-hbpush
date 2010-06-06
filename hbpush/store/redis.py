@@ -9,8 +9,9 @@ from functools import partial
 class RedisStore(Store):
     PRECISION = 5
 
-    def __init__(self):
-        self.client = Client()
+    def __init__(self, **kwargs):
+        self.key_prefix = kwargs.pop('key_prefix', '')
+        self.client = Client(**kwargs)
         self.client.connect()
 
     def _get_message(self, callback, errback, data):
@@ -29,19 +30,22 @@ class RedisStore(Store):
         if etag >= 0:
             score = '('+score
 
-        self.client.zrangebyscore(channel_id, score, '+inf', 0, 1,
+        self.client.zrangebyscore(self.make_key(channel_id), score, '+inf', 0, 1,
             callbacks=partial(self._on_result, partial(self._get_message, callback, errback), errback))
 
     def get_last(self, channel_id, callback, errback):
-        self.client.zrevrange(channel_id, 0, 0, False, partial(self._on_result, partial(self._get_message, callback, errback), errback))
+        self.client.zrevrange(self.make_key(channel_id), 0, 0, False, partial(self._on_result, partial(self._get_message, callback, errback), errback))
         
     def post(self, channel_id, message, callback, errback):
         (score, data) = self.make_message(message)
-        self.client.zadd(channel_id, score, data, partial(self._on_result, lambda x: callback(message), errback))
+        self.client.zadd(self.make_key(channel_id), score, data, partial(self._on_result, lambda x: callback(message), errback))
 
     def flush(self, channel_id, callback, errback):
-        self.client.delete(channel_id, partial(self._on_result, lambda x: callback(True), errback))
+        self.client.delete(self.make_key(channel_id), partial(self._on_result, lambda x: callback(True), errback))
 
+
+    def make_key(self, channel_id):
+        return ''.join((self.key_prefix, channel_id))
 
     def make_score(self, message):
         return '{{0:d}}.{{1:0{0}d}}'.format(self.PRECISION).format(message.last_modified, message.etag > 0 and message.etag or 0)
