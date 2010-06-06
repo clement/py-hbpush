@@ -1,6 +1,6 @@
 from hbpush.store import Store
 from hbpush.message import Message
-from brukva.client import Client
+from hbpush.utils.redis import AutoClient as Client
 
 from email.utils import formatdate, parsedate_tz, mktime_tz
 from functools import partial
