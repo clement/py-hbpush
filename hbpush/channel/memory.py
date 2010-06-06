@@ -12,27 +12,56 @@ class MemoryChannelRegistry(ChannelRegistry):
         try:
             callback(self.channels[id])
         except KeyError:
-            errback(Channel.DoesNotExist())
+            def _cb(message):
+                channel = self.channel_cls(id, self.store)
+                channel.last_message = message
+                self.channels[id] = channel
+                callback(channel)
+            def _eb(error):
+                if error.__class__ == Message.DoesNotExist:
+                    error = Channel.DoesNotExist()
+                errback(error)
+            self.store.get_last(id, _cb, _eb)
+
 
     def create(self, id, callback, errback, overwrite=False):
-        if not overwrite and id in self.channels:
-            errback(Channel.Duplicate())
-        else:
+        def _create():
             channel = self.channel_cls(id, self.store)
             self.channels[id] = channel
             callback(channel)
 
+        def _cb(channel):
+            if not overwrite:
+                errback(Channel.Duplicate())
+            else:
+                _create()
+
+        def _eb(error):
+            # A good thing, we actually need an error
+            if error.__class__ == Channel.DoesNotExist:
+                _create()
+            else:
+                errback(error)
+
+        self.get(id, _cb, _eb)
+
+
     def get_or_create(self, id, callback, errback):
-        if id not in self.channels:
-            self.channels[id] = self.channel_cls(id, self.store)
-        callback(self.channels[id])
+        def _eb(error):
+            if error.__class__ == Channel.DoesNotExist:
+                self.create(id, callback, errback)
+            else:
+                errback(error)
+
+        self.get(id, callback, _eb)
+
 
     def delete(self, id, callback, errback):
-        try:
-            channel = self.channels.pop(id)
+        def _delete(channel):
+            self.channels.pop(id)
             channel.delete(callback, errback)
-        except KeyError:
-            errback(Channel.DoesNotExist())
+        self.get(id, _delete, errback)
+
 
 class MemoryChannel(Channel):
     def __init__(self, *args, **kwargs):
