@@ -129,4 +129,10 @@ from tornado.httpserver import HTTPServer
 from tornado.ioloop import IOLoop
 
 HTTPServer(Application(conf['locations'])).listen(conf['port'], conf['address'])
-IOLoop.instance().start()
+
+try:
+    IOLoop.instance().start()
+except KeyboardInterrupt:
+    # exit without a nagging exception message
+    import sys
+    sys.exit(0)
