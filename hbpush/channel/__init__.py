@@ -24,6 +24,7 @@ class Channel(object):
     def __init__(self, id, store):
         self.store = store
         self.id = id
+        self.sentinel = None
 
     def post(self, message, callback):
         raise NotImplementedError("")
@@ -41,15 +42,17 @@ class Channel(object):
         raise NotImplementedError("")
 
     def make_message(self, content_type, body):
-        last_message = self.get_last_message()
+        if not self.sentinel:
+            self.sentinel = self.get_last_message()
 
         last_modified = int(time.time())
-        if last_modified == last_message.last_modified:
-            etag = last_message.etag+1
+        if last_modified == self.sentinel.last_modified:
+            etag = self.sentinel.etag+1
         else:
             etag = 0
 
-        return Message(last_modified, etag, content_type, body)
+        self.sentinel = Message(last_modified, etag, content_type, body)
+        return self.sentinel
 
 
     class DoesNotExist(Exception):
