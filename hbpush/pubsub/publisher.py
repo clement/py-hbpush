@@ -1,5 +1,6 @@
 from tornado.web import asynchronous
 from hbpush.pubsub import PubSubHandler
+from hbpush.channel import Channel
 
 class Publisher(PubSubHandler):
     @asynchronous
@@ -24,6 +25,7 @@ class Publisher(PubSubHandler):
         def _channel_error(error):
             if error.__class__ != Channel.Duplicate:
                 raise error
+            self.simple_finish()
 
         self.registry.create(channel_id, callback=self.simple_finish, errback=_channel_error)
 
