@@ -1,0 +1,132 @@
+#!/usr/bin/python
+
+## DEFAULT CONFIGURATION ##
+default_store= {
+    'redis': {
+        'port': 6379,
+        'host': 'localhost',
+        'key_prefix': '',
+    },
+    'memory': {
+    }
+}
+
+default_location = {
+    'subscriber': {
+        'polling': 'long',
+        'store': 'default',
+    },
+    'publisher': {
+        'create_on_post': True,
+        'store': 'default',
+    }
+}
+
+defaults = {
+    'port': 80,
+    'address': '',
+    'store': {
+        'type': 'memory',
+    },
+    'locations': [
+        {
+            'type': 'publisher',
+            'prefix': '/publisher/',
+        },
+        {
+            'type': 'subscriber',
+            'prefix': '/subscriber/',
+        }
+    ]
+}
+
+
+## COMMAND LINE PARSING ##
+import optparse
+
+parser = optparse.OptionParser()
+parser.add_option('-c', '--config', dest='config_filename',
+    help='read configuration from FILE', metavar='FILE')
+parser.add_option('-f', '--format', dest='format', default='yaml',
+    help='configuration file format (json|yaml, default to yaml)', metavar='FORMAT')
+(options, _) = parser.parse_args()
+
+conf = defaults
+
+if options.config_filename:
+    ## IMPORTING SETTINGS FROM YAML CONFIGURATION FILE ##
+    if options.format == 'yaml':
+        import yaml as serializer
+    elif options.format == 'json':
+        import json as serializer
+    else:
+        parser.error('Invalid format for configuration file `%s`' % options.format)
+
+    with open(options.config_filename) as conf_file:
+        conf.update(serializer.load(conf_file))
+
+
+## CONFIGURATION ##
+from hbpush.store.redis import RedisStore
+from hbpush.store.memory import MemoryStore
+from hbpush.channel.memory import MemoryChannel, MemoryChannelRegistry
+
+class InvalidConfigurationError(Exception):
+    pass
+
+def make_store(store_dict):
+    # Work on a copy
+    store_conf = default_store.get(store_dict['type'], {}).copy()
+    store_conf.update(store_dict)
+
+    store_type = store_conf.pop('type')
+    if store_type == 'memory':
+        cls = MemoryStore
+    elif store_type == 'redis':
+        cls = RedisStore
+    else:
+        raise InvalidConfigurationError('Invalid store type `%s`' % store_type)
+
+    store = cls(**store_conf)
+    return {'store': store, 'registry': MemoryChannelRegistry(MemoryChannel, store)}
+
+def make_stores(stores_dict):
+    if 'type' in stores_dict:
+        stores_dict = {'default': stores_dict}
+    return dict([(k, make_store(stores_dict[k])) for k in stores_dict])
+
+
+from hbpush.pubsub.publisher import Publisher
+from hbpush.pubsub.subscriber import Subscriber, LongPollingSubscriber
+
+def make_location(loc_dict, stores={}):
+    loc_conf = default_location.get(loc_dict['type'], {}).copy()
+    loc_conf.update(loc_dict)
+
+    loc_type = loc_conf.pop('type')
+    if loc_type == 'publisher':
+        cls = Publisher
+    elif loc_type == 'subscriber':
+        sub_type = loc_conf.pop('polling')
+        if sub_type == 'long':
+            cls = LongPollingSubscriber
+        elif sub_type == 'interval':
+            cls = Subscriber
+        else:
+            raise InvalidConfigurationError('Invalid polling `%s`' % sub_type)
+    else:
+        raise InvalidConfigurationError('Invalid location type `%s`' % loc_type)
+
+    return (('url' in loc_conf and loc_conf['url'] or loc_conf['prefix']+'(.+)'),
+        cls, {'registry': stores[loc_conf['store']]['registry']})
+
+from functools import partial
+conf['store'] = make_stores(conf['store'])
+conf['locations'] = map(partial(make_location, stores=conf['store']), conf['locations'])
+
+from tornado.web import Application
+from tornado.httpserver import HTTPServer
+from tornado.ioloop import IOLoop
+
+HTTPServer(Application(conf['locations'])).listen(conf['port'], conf['address'])
+IOLoop.instance().start()
