@@ -11,8 +11,12 @@ class Publisher(PubSubHandler):
     def post(self, channel_id):
         # Write a summary of the post to the publisher
         @self.async_callback
-        def _write_response(message):
-            self.write('Written: (%d) (%d) %s' % (message.last_modified, message.etag, message.body))
+        def _write_response(info):
+            message, subscribers_sent = info
+            if subscribers_sent:
+                self.set_status(201)
+            else:
+                self.set_status(202)
             self.finish()
 
         # the channel is ok, write a message to it

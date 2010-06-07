@@ -88,21 +88,24 @@ class MemoryChannel(Channel):
         # We work on a copy to deal with reentering subscribers
         subs = self.subscribers.copy()
         self.subscribers = {}
+        nb = 0
         for (id_subscriber, (cb, eb)) in subs.items():
             try:
                 cb(message)
+                nb += 1
             except:
                 logging.error("Error sending message to subscriber", exc_info=True)
+        return nb
 
     def post(self, content_type, body, callback, errback):
         def _process_message(message):
-            self.send_to_subscribers(message)
+            nb_subscribers = self.send_to_subscribers(message)
             # This piece assumes we will always get to that callback in the order
             # we posted messages
             assert self.last_message < message
             self.last_message = Message(message.last_modified, message.etag)
             # Give back control to the handler with the result of the store
-            callback(message)
+            callback((message, nb_subscribers))
             
         message = self.make_message(content_type, body)
         self.store.post(self.id, message, callback=_process_message, errback=errback)
