@@ -18,11 +18,6 @@ class Subscriber(PubSubHandler):
             callback=self.async_callback(partial(self._process_channel, last_modified, etag)),
             errback=self.errback)
 
-
-    def on_connection_close(self):
-        if hasattr(self, 'channel'):
-            self.channel.unsubscribe(id(self))
-
     def _process_message(self, message):
         self.set_header('Etag', message.etag)
         self.set_header('Last-Modified', formatdate(message.last_modified, localtime=False, usegmt=True))
@@ -38,6 +33,15 @@ class Subscriber(PubSubHandler):
 
 
 class LongPollingSubscriber(Subscriber):
+    def unsubscribe(self):
+        if hasattr(self, 'channel'):
+            self.channel.unsubscribe(id(self))
+    on_connection_close = unsubscribe
+
+    def finish(self):
+        self.unsubscribe()
+        super(LongPollingSubscriber, self).finish()
+
     def _process_channel(self, last_modified, etag, channel):
         @self.async_callback
         def _wait_for_message(error):
