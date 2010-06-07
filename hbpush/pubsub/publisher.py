@@ -3,6 +3,10 @@ from hbpush.pubsub import PubSubHandler
 from hbpush.channel import Channel
 
 class Publisher(PubSubHandler):
+    def __init__(self, *args, **kwargs):
+        self.create_on_post = kwargs.pop('create_on_post', True)
+        super(Publisher, self).__init__(*args, **kwargs)
+
     @asynchronous
     def post(self, channel_id):
         # Write a summary of the post to the publisher
@@ -16,7 +20,12 @@ class Publisher(PubSubHandler):
         def _post_message(channel):
             channel.post(self.request.headers['Content-Type'], self.request.body, callback=_write_response, errback=self.errback)
 
-        self.registry.get_or_create(channel_id, callback=_post_message, errback=self.errback)
+        if self.create_on_post:
+            func = self.registry.get_or_create
+        else:
+            func = self.registry.get
+
+        func(channel_id, callback=_post_message, errback=self.errback)
 
 
     @asynchronous

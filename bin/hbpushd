@@ -117,8 +117,12 @@ def make_location(loc_dict, stores={}):
     else:
         raise InvalidConfigurationError('Invalid location type `%s`' % loc_type)
 
-    return (('url' in loc_conf and loc_conf['url'] or loc_conf['prefix']+'(.+)'),
-        cls, {'registry': stores[loc_conf['store']]['registry']})
+    url = loc_conf.pop('url', loc_conf.pop('prefix')+'(.+)')
+    store_id = loc_conf.pop('store')
+    kwargs = {'registry': stores[store_id]['registry']}
+    kwargs.update(loc_conf)
+    return (url, cls, kwargs)
+
 
 from functools import partial
 conf['store'] = make_stores(conf['store'])
