@@ -69,7 +69,7 @@ if options.config_filename:
 ## CONFIGURATION ##
 from hbpush.store.redis import RedisStore
 from hbpush.store.memory import MemoryStore
-from hbpush.channel.memory import MemoryChannel, MemoryChannelRegistry
+from hbpush.registry import Registry
 
 class InvalidConfigurationError(Exception):
     pass
@@ -88,7 +88,7 @@ def make_store(store_dict):
         raise InvalidConfigurationError('Invalid store type `%s`' % store_type)
 
     store = cls(**store_conf)
-    return {'store': store, 'registry': MemoryChannelRegistry(MemoryChannel, store)}
+    return {'store': store, 'registry': Registry(store)}
 
 def make_stores(stores_dict):
     if 'type' in stores_dict:
