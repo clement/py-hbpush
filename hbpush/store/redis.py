@@ -4,6 +4,7 @@ from hbpush.utils.redis import AutoClient as Client
 
 from email.utils import formatdate, parsedate_tz, mktime_tz
 from functools import partial
+import struct
 
 
 class RedisStore(Store):
@@ -48,7 +49,10 @@ class RedisStore(Store):
         return ''.join((self.key_prefix, channel_id))
 
     def make_score(self, message):
-        return '{{0:d}}.{{1:0{0}d}}'.format(self.PRECISION).format(message.last_modified, message.etag > 0 and message.etag or 0)
+        etag = message.etag > 0 and message.etag or 0
+        assert (etag >> 30) == 0
+        # We return repr here not to suffer the precision rounding of str
+        return repr(struct.unpack('d', struct.pack('Q', (message.last_modified << 30) + etag))[0])
 
     def make_message(self, message):
         return (self.make_score(message),
