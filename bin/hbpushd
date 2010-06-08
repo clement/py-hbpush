@@ -6,6 +6,7 @@ default_store= {
         'port': 6379,
         'host': 'localhost',
         'key_prefix': '',
+        'database': 0,
     },
     'memory': {
     }
