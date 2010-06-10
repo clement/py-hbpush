@@ -1,8 +1,9 @@
 from hbpush.store import Store
 from hbpush.message import Message
 from hbpush.utils.redis import AutoClient as Client
+from hbpush.utils.message import make_score, parse_redis_message
 
-from email.utils import formatdate, parsedate_tz, mktime_tz
+from email.utils import formatdate
 from functools import partial
 import struct
 
@@ -18,13 +19,13 @@ class RedisStore(Store):
             errback(Message.DoesNotExist())
         else:
             try:
-                callback(self.parse_message(data[0]))
+                callback(parse_redis_message(data[0]))
             except Message.Invalid, e:
                 errback(e)
         
 
     def get(self, channel_id, last_modified, etag, callback, errback):
-        score = self.make_score(Message(last_modified, etag))
+        score = make_score(last_modified, etag)
         # If an etag is set, we have to make the range request exclusive
         if etag >= 0:
             score = '('+score
@@ -49,27 +50,13 @@ class RedisStore(Store):
     def make_key(self, channel_id):
         return ''.join((self.key_prefix, channel_id))
 
-    def make_score(self, message):
-        etag = message.etag > 0 and message.etag or 0
-        assert (etag >> 30) == 0
-        # We return repr here not to suffer the precision rounding of str
-        return repr(struct.unpack('d', struct.pack('Q', (message.last_modified << 30) + etag))[0])
-
     def make_message(self, message):
-        return (self.make_score(message),
+        return (make_score(message.last_modified, message.etag),
             ('Last-Modified: %s\r\n' % formatdate(message.last_modified, localtime=False, usegmt=True))+
             ('Content-Type: %s\r\n' % message.content_type)+
             ('Etag: %d\r\n\r\n' % message.etag)+
             message.body
         )
-
-    def parse_message(self, payload):
-        try:
-            headers, body = payload.split('\r\n'*2, 1)
-            headers = dict(map(lambda h: h.split(': ', 1), headers.split('\r\n')))
-            return Message(mktime_tz(parsedate_tz(headers['Last-Modified'])), int(headers['Etag']), headers['Content-Type'], body)
-        except:
-            raise Message.Invalid()
 
     def _on_result(self, callback, errback, result):
         (error, data) = result
