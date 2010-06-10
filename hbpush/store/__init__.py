@@ -10,3 +10,6 @@ class Store(object):
 
     def flush(self, channel_id, callback, errback):
         raise NotImplementedError("")
+
+    def flushall(self, callback, errback):
+        raise NotImplementedError("")

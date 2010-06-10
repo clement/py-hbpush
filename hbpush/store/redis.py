@@ -44,6 +44,9 @@ class RedisStore(Store):
     def flush(self, channel_id, callback, errback):
         self.client.delete(self.make_key(channel_id), partial(self._on_result, lambda x: callback(True), errback))
 
+    def flushall(self, callback, errback):
+        self.client.flushdb(partial(self._on_result, lambda x: callback(True), errback))
+
 
     def make_key(self, channel_id):
         return ''.join((self.key_prefix, channel_id))

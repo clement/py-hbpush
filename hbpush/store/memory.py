@@ -33,3 +33,7 @@ class MemoryStore(Store):
     def flush(self, channel_id, callback, errback):
         del self.messages[channel_id]
         callback(True)
+
+    def flushall(self, callback, errback):
+        self.messages = {}
+        callback(True)
