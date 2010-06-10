@@ -29,6 +29,7 @@ setup(name='py-hbpush',
       scripts=('bin/hbpushd',),
       dependency_links= ('http://github.com/facebook/tornado/tarball/b8271f94434208646eeec9cf33da703d97c5364e#egg=tornado-0.2',
                          'http://github.com/clement/brukva/tarball/bff451511a3cc09cd52bebcf6372a59d36567827#egg=brukva-0.0.1',),
+      setup_requires=('nose>=0.11',),
       install_requires=('PyYAML', 'brukva==0.0.1', 'tornado==0.2'),
       requires=('PyYAML', 'brukva(==0.0.1)', 'tonardo(==0.2)'),
 )
