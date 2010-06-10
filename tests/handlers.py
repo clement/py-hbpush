@@ -35,6 +35,7 @@ class BaseHandlerTestCase(object):
         default_kwargs.update(kwargs)
         return MockRequest(*args, **default_kwargs)
 
+    ## Common test methods
     def test_delete_basic(self):
         """Test basic deletion functionnality"""
 
@@ -47,7 +48,6 @@ class BaseHandlerTestCase(object):
             self.publisher('DELETE', channel_id, cb=self.expect(200)),
         )
 
-    ## Common test methods
     def test_delete_gone(self):
         """Test that long polling subscribers get a 410 Gone response when the channel they were waiting
            on is deleted"""
@@ -59,6 +59,15 @@ class BaseHandlerTestCase(object):
                 self.long_subscriber('GET', channel_id, cb=self.expect(410)),
                 self.publisher('DELETE', channel_id, cb=self.expect(200)),
             ),
+        )
+
+    def test_create(self):
+        """Test that we can create a channel, and double PUT on it won't complain"""
+
+        channel_id = 'create'
+        self.execute(
+            self.publisher('PUT', channel_id, cb=self.expect(200)),
+            self.publisher('PUT', channel_id, cb=self.expect(200)),
         )
 
     def test_create_on_post(self):
