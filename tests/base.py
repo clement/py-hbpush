@@ -50,12 +50,15 @@ class TornadoTestCase(TestCase):
     def tearDown(self):
         self.finish()
 
+    def start(self):
+        self.io_loop.start()
+
     def finish(self, *args):
         self.io_loop.stop()
 
     def execute(self, *args):
         seq(*args)(self.finish)
-        self.io_loop.start()
+        self.start()
 
         # We start an ioloop only if the chain has not
         # been executed asynchronously
