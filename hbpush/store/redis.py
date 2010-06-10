@@ -19,8 +19,8 @@ class RedisStore(Store):
         else:
             try:
                 callback(self.parse_message(data[0]))
-            except:
-                errback(Message.Invalid())
+            except Message.Invalid, e:
+                errback(e)
         
 
     def get(self, channel_id, last_modified, etag, callback, errback):
@@ -64,9 +64,12 @@ class RedisStore(Store):
         )
 
     def parse_message(self, payload):
-        headers, body = payload.split('\r\n'*2, 1)
-        headers = dict(map(lambda h: h.split(': ', 1), headers.split('\r\n')))
-        return Message(mktime_tz(parsedate_tz(headers['Last-Modified'])), int(headers['Etag']), headers['Content-Type'], body)
+        try:
+            headers, body = payload.split('\r\n'*2, 1)
+            headers = dict(map(lambda h: h.split(': ', 1), headers.split('\r\n')))
+            return Message(mktime_tz(parsedate_tz(headers['Last-Modified'])), int(headers['Etag']), headers['Content-Type'], body)
+        except:
+            raise Message.Invalid()
 
     def _on_result(self, callback, errback, result):
         (error, data) = result
