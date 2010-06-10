@@ -63,13 +63,15 @@ class MockRequest(object):
         self.handler = handler
         self.body = body
         self.kwargs = kwargs
-        self.headers = HTTPHeaders()
-        if headers:
-            for name, val in [h.split(': ') for h in headers]:
-                self.headers[name] = val
+        self.headers = headers
 
     def __call__(self, next):
-        req = HTTPRequest(self.method, '', body=self.body, headers=self.headers)
+        headers = HTTPHeaders()
+        if self.headers:
+            for name, val in [h.split(': ') for h in self.headers]:
+                headers[name] = val
+
+        req = HTTPRequest(self.method, '', body=self.body, headers=headers)
         del req.connection
         app = MockApplication()
         getattr(self.handler(app, req, **self.kwargs), self.method.lower())(self.channel, self.callbacks, next)
