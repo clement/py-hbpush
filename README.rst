@@ -16,13 +16,10 @@ Install
 
 ::
 
-  $ pip install py-hbpush
+  $ git clone git://github.com/clement/py-hbpush.git
+  $ cd py-hbpush
+  $ python setup.py install
 
-or
-
-::
-
-  $ easy_install py-hbpush
 
 Running it
 ----------
@@ -105,6 +102,7 @@ of stores, ``memory`` and ``redis``. Each of these stores has specific options. 
 
 - ``host``: the hostname for redis server, default to ``'localhost'``
 - ``port``: the port for redis server, default to ``6379``
+- ``database``: the database index to select when connecting to redis
 - ``key_prefix``: a string prepended to a channel identifier to make a redis key. Use this to avoid key
   collision when you're using your redis server for other stuff.
 
@@ -232,27 +230,41 @@ Caveats
   with this configuration, your publisher location will be unreachable, as the server will always match the
   request to the subscriber location.
 
+Running Tests
+-------------
+
+Make sure you have a test redis server accessible at ``localhost:6379``. **Be careful**, the tests suite will
+flush your server default database, you've been warned.
+
+Run the test suite with ::
+
+    $ python setup.py nosetests
+
 Known Issues
 ------------
 
-- the current implementation of the redis message store uses zset (ordered sets) to store channels
-  messages. It allows for blazingly fast search of a given message in a channel. But due to the way
-  scoring is implemented in zsets (as a double-precision number), you can't have more than 10K messages
-  per second (peek) for a given channel. If you ever reach that kind of volume, it is recommended to
-  partition your traffic so you can stay below the threshold.
-- hbpushd depends on the development version of facebook's tornado. `setup.py` will install a
-  compatible version, but if you have already installed tornado through `easy_install` or `pip`,
-  you might have some problems with Etag, or when launching hbpushd. In that case, reinstall
+- hbpushd depends on the development version of facebook's tornado. ``setup.py`` will install a
+  compatible version, but if you have already installed tornado through ``easy_install`` or ``pip``,
+  you might have some problems with Etags, or when launching hbpushd. In that case, reinstall
   the latest version of tornado_.
 
 Change log
 ----------
 
 - 0.1.0
+
   - redis and memory message store
   - interval and long polling
   - subscriber and publisher locations
-  - partial implementation of the protocol
+
+Roadmap
+-------
+
+- multiplexing
+- postgreSQL message store
+- in-code documentation
+- codebase refactoring
+
 
 .. _tornado: http://github.com/facebook/tornado
 .. _cURL: http://curl.haxx.se/
