@@ -8,8 +8,6 @@ import struct
 
 
 class RedisStore(Store):
-    PRECISION = 5
-
     def __init__(self, **kwargs):
         self.key_prefix = kwargs.pop('key_prefix', '')
         self.client = Client(**kwargs)
