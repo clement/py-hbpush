@@ -32,11 +32,8 @@ class Channel(object):
         self.subscribers = {}
         nb = 0
         for (id_subscriber, (cb, eb)) in subs.items():
-            try:
-                cb(message)
-                nb += 1
-            except:
-                logging.error("Error sending message to subscriber", exc_info=True)
+            cb(message)
+            nb += 1
         return nb
 
     def post(self, content_type, body, callback, errback):
@@ -79,10 +76,7 @@ class Channel(object):
 
     def delete(self, callback, errback):
         for id, (cb, eb) in self.subscribers.items():
-            try:
-                eb(Channel.Gone())
-            except:
-                logging.error("Error disconnecting subscribers after channel deletion", exc_info=True)
+            eb(Channel.Gone())
         # Just for the record
         self.subscribers = {}
 
