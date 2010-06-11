@@ -1,3 +1,4 @@
+# -coding: utf8
 from tests.mocks import *
 from tests.base import seq, par
 
@@ -132,6 +133,19 @@ class BaseHandlerTestCase(object):
             self.subscriber('GET', channel_id, headers=('If-Modified-Since: abcd',), cb=self.expect(400)),
             self.long_subscriber('GET', channel_id, headers=('If-None-Match: abcd',), cb=self.expect(400)),
             self.long_subscriber('GET', channel_id, headers=('If-Modified-Since: abcd',), cb=self.expect(400)),
+        )
+
+    def test_binary_string_id(self):
+        """Test that binary-string are accepted for channel ids, and that we can do all the chain of
+           PUT/POST/GET/DELETE without problem"""
+
+        channel_id = 'abc é\nfg\thi\0po'
+        self.execute(
+            self.publisher('PUT', channel_id, cb=self.expect(200)),
+            self.publisher('POST', channel_id, headers=(ct_textplain,), body=hello_world, cb=self.expect(202)),
+            self.subscriber('GET', channel_id, cb=self.expect(200, headers=(ct_textplain,), body=hello_world)),
+            self.long_subscriber('GET', channel_id, cb=self.expect(200, headers=(ct_textplain,), body=hello_world)),
+            self.publisher('DELETE', channel_id, cb=self.expect(200)),
         )
 
 
