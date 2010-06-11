@@ -8,7 +8,10 @@ def decorate_method(method):
     def _new_method(self, channel_id, expect, next):
         self.expect = expect
         self.next = next
-        getattr(super(MockHandler, self), method)(channel_id)
+        try:
+            getattr(super(MockHandler, self), method)(channel_id)
+        except Exception, e:
+            self._handle_request_exception(e)
     return _new_method
 
 class MockHandler(object):
