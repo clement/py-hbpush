@@ -28,8 +28,14 @@ class MockHandler(object):
         assert not self._finished
         self._write_buf += data
 
+    def flush(self, *args, **kwargs):
+        pass
+
+    def _log(self, *args, **kwargs):
+        pass
+
     def finish(self, *args, **kwargs):
-        self._finished = True
+        super(MockHandler, self).finish(*args, **kwargs)
 
         # Here we test expectations
         for callback in self.expect:
@@ -59,6 +65,16 @@ class MockApplication(object):
     _wsgi = False
 
 class MockRequest(object):
+    def request_time(self):
+        import time
+        return time.time()
+
+    def supports_http_1_1(self):
+        return True
+
+    uri = ''
+    remote_ip = '127.0.0.1'
+
     def __init__(self, method='GET', channel=None, headers=None, body='', cb=(), handler=None, **kwargs):
         self.method = method
         self.channel = channel
@@ -66,18 +82,19 @@ class MockRequest(object):
         self.handler = handler
         self.body = body
         self.kwargs = kwargs
-        self.headers = headers
+        self.headers_in = headers
 
     def __call__(self, next):
-        headers = HTTPHeaders()
-        if self.headers:
-            for name, val in [h.split(': ') for h in self.headers]:
-                headers[name] = val
+        self.headers = HTTPHeaders()
+        if self.headers_in:
+            for name, val in [h.split(': ') for h in self.headers_in]:
+                self.headers[name] = val
 
-        req = HTTPRequest(self.method, '', body=self.body, headers=headers)
-        del req.connection
         app = MockApplication()
-        getattr(self.handler(app, req, **self.kwargs), self.method.lower())(self.channel, self.callbacks, next)
+        getattr(self.handler(app, self, **self.kwargs), self.method.lower())(self.channel, self.callbacks, next)
+
+    def finish(self, *args, **kwargs):
+        pass
 
 
 class MockIOLoop(IOLoop):
