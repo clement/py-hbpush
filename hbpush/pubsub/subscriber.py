@@ -38,9 +38,9 @@ class LongPollingSubscriber(Subscriber):
             self.channel.unsubscribe(id(self))
     on_connection_close = unsubscribe
 
-    def finish(self):
+    def finish(self, chunk=None):
         self.unsubscribe()
-        super(LongPollingSubscriber, self).finish()
+        super(LongPollingSubscriber, self).finish(chunk)
 
     def _process_channel(self, last_modified, etag, channel):
         @self.async_callback

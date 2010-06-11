@@ -130,6 +130,8 @@ class BaseHandlerTestCase(object):
         self.execute(
             self.subscriber('GET', channel_id, headers=('If-None-Match: abcd',), cb=self.expect(400)),
             self.subscriber('GET', channel_id, headers=('If-Modified-Since: abcd',), cb=self.expect(400)),
+            self.long_subscriber('GET', channel_id, headers=('If-None-Match: abcd',), cb=self.expect(400)),
+            self.long_subscriber('GET', channel_id, headers=('If-Modified-Since: abcd',), cb=self.expect(400)),
         )
 
 
