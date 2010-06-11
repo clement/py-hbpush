@@ -124,6 +124,15 @@ class BaseHandlerTestCase(object):
             self.subscriber('GET', channel_id, cb=self.expect(200, headers=(ct_textplain,), body=hello_world)),
         )
 
+    def test_malformed_request(self):
+        """Test that subscribers will get a 400 error if they send invalid request headers"""
+        channel_id = 'malformed_request'
+        self.execute(
+            self.subscriber('GET', channel_id, headers=('If-None-Match: abcd',), cb=self.expect(400)),
+            self.subscriber('GET', channel_id, headers=('If-Modified-Since: abcd',), cb=self.expect(400)),
+        )
+
+
     def test_subscriber_chain(self):
         """Test that we are able to retrieve a set of messages in order, using etag and last
            modified dates"""
